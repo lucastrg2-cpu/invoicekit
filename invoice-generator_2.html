@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>InvoiceKit — Professional Invoice Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root {
+    --ink: #0f0f0f; --paper: #f5f0e8; --cream: #ede8dc;
+    --accent: #c8472a; --accent2: #2a5fc8; --muted: #888070;
+    --border: #d5cfc2; --white: #ffffff;
+    --shadow: 0 4px 32px rgba(15,15,15,0.10); --theme: #c8472a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+  header { background: var(--ink); color: var(--white); padding: 18px 40px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 1.5rem; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .tagline { font-size: 0.78rem; color: #aaa; font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+  .btn-dl { background: var(--accent); color: #fff; border: none; padding: 10px 22px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+  .btn-dl:hover { background: #a83520; }
+
+  .app { display: grid; grid-template-columns: 420px 1fr; min-height: calc(100vh - 60px); }
+
+  .form-panel { background: var(--white); border-right: 1px solid var(--border); padding: 32px 28px; overflow-y: auto; max-height: calc(100vh - 60px); }
+  .section-title { font-family: 'DM Mono', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+  input, textarea, select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 4px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: var(--ink); background: var(--paper); transition: border-color 0.15s; outline: none; }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent2); background: #fff; }
+  textarea { resize: vertical; min-height: 64px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-section { margin-bottom: 28px; }
+
+  /* Theme swatches */
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .swatch { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.active { border-color: var(--ink); }
+
+  /* Logo upload */
+  .upload-area { border: 2px dashed var(--border); border-radius: 6px; padding: 18px; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative; }
+  .upload-area:hover { border-color: var(--accent2); background: #f0f4ff; }
+  .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 1.5rem; margin-bottom: 4px; }
+  .upload-text { font-size: 0.78rem; color: var(--muted); }
+  .logo-preview { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .logo-preview img { max-height: 48px; max-width: 120px; object-fit: contain; border: 1px solid var(--border); border-radius: 4px; padding: 4px; background: #fff; }
+  .btn-rm-logo { background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--accent); font-size: 0.75rem; padding: 4px 10px; cursor: pointer; }
+
+  /* Line items */
+  .li-header { display: grid; grid-template-columns: 3fr 1fr 1.2fr 36px; gap: 6px; margin-bottom: 6px; }
+  .li-row { display: grid; grid-template-columns: 3fr 1fr 1.2fr 36px; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .li-row input { font-size: 0.85rem; }
+  .btn-rm { background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--accent); font-size: 1rem; cursor: pointer; height: 34px; display: flex; align-items: center; justify-content: center; }
+  .btn-rm:hover { background: #fef2f0; }
+  .btn-add { background: none; border: 1px dashed var(--accent2); color: var(--accent2); font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 600; padding: 8px 16px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 4px; }
+  .btn-add:hover { background: #f0f4ff; }
+
+  /* Signature */
+  .sig-wrap { border: 1px solid var(--border); border-radius: 4px; background: var(--paper); }
+  #sig-canvas { display: block; width: 100%; height: 90px; cursor: crosshair; touch-action: none; }
+  .sig-actions { display: flex; gap: 8px; margin-top: 6px; }
+  .btn-sig { background: none; border: 1px solid var(--border); border-radius: 4px; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; padding: 5px 12px; cursor: pointer; color: var(--muted); }
+  .btn-sig:hover { background: var(--cream); }
+
+  /* Preview */
+  .preview-panel { background: var(--cream); padding: 36px 40px; overflow-y: auto; max-height: calc(100vh - 60px); display: flex; flex-direction: column; align-items: center; }
+  .preview-label { font-family: 'DM Mono', monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; align-self: flex-start; }
+
+  /* Invoice doc */
+  #invoice-doc { background: var(--white); width: 680px; min-height: 880px; padding: 56px 56px 48px; box-shadow: var(--shadow); position: relative; }
+  .inv-bar { height: 6px; position: absolute; top: 0; left: 0; right: 0; background: var(--theme); }
+  .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; }
+  .inv-brand { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--ink); line-height: 1; }
+  .inv-brand-sub { font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; letter-spacing: 0.08em; margin-top: 4px; }
+  .inv-logo-img { max-height: 64px; max-width: 180px; object-fit: contain; display: block; }
+  .inv-title { font-family: 'DM Serif Display', serif; font-size: 2.4rem; letter-spacing: -1px; line-height: 1; color: var(--theme); }
+  .inv-number { font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; }
+  .inv-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; background: var(--paper); padding: 20px 24px; border-radius: 4px; margin-bottom: 32px; }
+  .inv-meta label { font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 3px; font-weight: 400; }
+  .inv-meta span { font-size: 0.88rem; font-weight: 600; color: var(--ink); }
+  .inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 36px; }
+  .inv-party-label { font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .inv-party-name { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--ink); margin-bottom: 3px; }
+  .inv-party-detail { font-size: 0.82rem; color: var(--muted); line-height: 1.6; white-space: pre-line; }
+  .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  .inv-table thead th { font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; text-align: left; border-bottom: 2px solid var(--ink); }
+  .inv-table thead th:last-child { text-align: right; }
+  .inv-table tbody td { padding: 12px 10px; font-size: 0.88rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .inv-table tbody td:nth-child(2), .inv-table tbody td:nth-child(3) { text-align: center; }
+  .inv-table tbody td:last-child { text-align: right; font-family: 'DM Mono', monospace; }
+  .inv-table tbody tr:last-child td { border-bottom: none; }
+  .inv-totals { display: flex; justify-content: flex-end; margin-bottom: 28px; }
+  .inv-totals-box { width: 260px; border-top: 2px solid var(--ink); padding-top: 14px; }
+  .inv-total-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 8px; color: var(--muted); }
+  .inv-total-row.grand { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--ink); border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px; }
+  .inv-terms { background: var(--paper); border-radius: 4px; padding: 12px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+  .inv-terms-label { font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+  .inv-terms-val { font-size: 0.85rem; color: var(--ink); font-weight: 600; }
+  .inv-sig-section { display: flex; justify-content: flex-end; margin-bottom: 24px; }
+  .inv-sig-box { width: 220px; text-align: center; }
+  .inv-sig-img { max-width: 180px; max-height: 60px; object-fit: contain; display: block; margin: 0 auto 8px; }
+  .inv-sig-line { border-top: 1px solid var(--ink); padding-top: 6px; font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .inv-notes { background: var(--paper); border-radius: 4px; padding: 16px 20px; margin-bottom: 24px; }
+  .inv-notes-label { font-family: 'DM Mono', monospace; font-size: 0.63rem; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .inv-notes-text { font-size: 0.83rem; color: var(--ink); line-height: 1.6; white-space: pre-line; }
+  .inv-footer { border-top: 1px solid var(--border); padding-top: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .inv-footer-brand { font-family: 'DM Serif Display', serif; font-size: 0.9rem; color: var(--muted); }
+  .inv-footer-mono { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--border); letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Invoice<span>Kit</span></div>
+    <div class="tagline">Professional Invoice Generator</div>
+  </div>
+  <button class="btn-dl" onclick="downloadPDF()">⬇ Download PDF</button>
+</header>
+
+<div class="app">
+  <div class="form-panel">
+
+    <!-- THEME -->
+    <div class="form-section">
+      <div class="section-title">Invoice Theme</div>
+      <div class="form-group">
+        <label>Accent Color</label>
+        <div class="swatches" id="swatches"></div>
+      </div>
+    </div>
+
+    <!-- YOUR BUSINESS -->
+    <div class="form-section">
+      <div class="section-title">Your Business</div>
+      <div class="form-group">
+        <label>Logo (optional)</label>
+        <div class="upload-area">
+          <input type="file" id="logo-input" accept="image/*" onchange="handleLogo(event)"/>
+          <div class="upload-icon">🖼</div>
+          <div class="upload-text">Click to upload logo (PNG, JPG, SVG)</div>
+        </div>
+        <div class="logo-preview" id="logo-preview" style="display:none">
+          <img id="logo-img" src="" alt="Logo"/>
+          <button class="btn-rm-logo" onclick="removeLogo()">Remove</button>
+        </div>
+      </div>
+      <div class="form-group"><label>Business / Your Name</label><input id="fromName" placeholder="Acme Studio" oninput="update()"/></div>
+      <div class="form-group"><label>Email</label><input id="fromEmail" placeholder="hello@acme.co" oninput="update()"/></div>
+      <div class="form-group"><label>Address</label><textarea id="fromAddress" placeholder="123 Main St&#10;New York, NY 10001" oninput="update()"></textarea></div>
+    </div>
+
+    <!-- BILL TO -->
+    <div class="form-section">
+      <div class="section-title">Bill To</div>
+      <div class="form-group"><label>Client Name</label><input id="toName" placeholder="Big Corp Inc." oninput="update()"/></div>
+      <div class="form-group"><label>Client Email</label><input id="toEmail" placeholder="billing@bigcorp.com" oninput="update()"/></div>
+      <div class="form-group"><label>Client Address</label><textarea id="toAddress" placeholder="456 Client Ave&#10;San Francisco, CA" oninput="update()"></textarea></div>
+    </div>
+
+    <!-- INVOICE DETAILS -->
+    <div class="form-section">
+      <div class="section-title">Invoice Details</div>
+      <div class="two-col">
+        <div class="form-group"><label>Invoice #</label><input id="invNumber" value="INV-001" oninput="update()"/></div>
+        <div class="form-group"><label>Date</label><input id="invDate" type="date" oninput="update()"/></div>
+      </div>
+      <div class="two-col">
+        <div class="form-group"><label>Due Date</label><input id="dueDate" type="date" oninput="update()"/></div>
+        <div class="form-group"><label>Currency</label>
+          <select id="currency" onchange="update()">
+            <option value="$">USD ($)</option>
+            <option value="€">EUR (€)</option>
+            <option value="£">GBP (£)</option>
+            <option value="¥">JPY (¥)</option>
+            <option value="C$">CAD (C$)</option>
+            <option value="A$">AUD (A$)</option>
+          </select>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group"><label>Tax Rate (%)</label><input id="taxRate" type="number" value="0" min="0" max="100" oninput="update()"/></div>
+        <div class="form-group"><label>Discount (%)</label><input id="discount" type="number" value="0" min="0" max="100" oninput="update()"/></div>
+      </div>
+      <div class="form-group">
+        <label>Payment Terms</label>
+        <select id="paymentTerms" onchange="termsChange()">
+          <option value="">— None —</option>
+          <option value="Due on Receipt">Due on Receipt</option>
+          <option value="Net 7">Net 7 — Due in 7 days</option>
+          <option value="Net 15">Net 15 — Due in 15 days</option>
+          <option value="Net 30" selected>Net 30 — Due in 30 days</option>
+          <option value="Net 60">Net 60 — Due in 60 days</option>
+          <option value="50% Upfront">50% Upfront, 50% on Completion</option>
+          <option value="custom">Custom…</option>
+        </select>
+      </div>
+      <div class="form-group" id="custom-terms-wrap" style="display:none">
+        <label>Custom Terms</label>
+        <input id="customTerms" placeholder="e.g. 2/10 Net 30" oninput="update()"/>
+      </div>
+    </div>
+
+    <!-- LINE ITEMS -->
+    <div class="form-section">
+      <div class="section-title">Line Items</div>
+      <div class="li-header">
+        <label>Description</label><label>Qty</label><label>Rate</label><span></span>
+      </div>
+      <div id="line-items"></div>
+      <button class="btn-add" onclick="addLine()">+ Add Item</button>
+    </div>
+
+    <!-- NOTES -->
+    <div class="form-section">
+      <div class="section-title">Notes</div>
+      <div class="form-group"><textarea id="notes" placeholder="Bank details, payment instructions, thank-you message..." oninput="update()"></textarea></div>
+    </div>
+
+    <!-- SIGNATURE -->
+    <div class="form-section">
+      <div class="section-title">Signature</div>
+      <div class="form-group">
+        <label>Draw your signature</label>
+        <div class="sig-wrap">
+          <canvas id="sig-canvas" width="364" height="90"></canvas>
+        </div>
+        <div class="sig-actions">
+          <button class="btn-sig" onclick="clearSig()">Clear</button>
+          <button class="btn-sig" onclick="applySig()">✓ Apply to Invoice</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="preview-label">Live Preview</div>
+    <div id="invoice-doc">
+      <div class="inv-bar" id="inv-bar"></div>
+
+      <div class="inv-header">
+        <div id="inv-brand-block">
+          <div class="inv-brand">Your Business</div>
+          <div class="inv-brand-sub"></div>
+        </div>
+        <div style="text-align:right">
+          <div class="inv-title" id="inv-title">INVOICE</div>
+          <div class="inv-number" id="prev-num">INV-001</div>
+        </div>
+      </div>
+
+      <div class="inv-meta">
+        <div><label>Issue Date</label><span id="prev-date">—</span></div>
+        <div><label>Due Date</label><span id="prev-due">—</span></div>
+        <div><label>Amount Due</label><span id="prev-amt" style="color:var(--theme)">$0.00</span></div>
+      </div>
+
+      <div class="inv-parties">
+        <div>
+          <div class="inv-party-label">From</div>
+          <div class="inv-party-name" id="prev-from-name">Your Name</div>
+          <div class="inv-party-detail" id="prev-from-detail"></div>
+        </div>
+        <div>
+          <div class="inv-party-label">Bill To</div>
+          <div class="inv-party-name" id="prev-to-name">Client Name</div>
+          <div class="inv-party-detail" id="prev-to-detail"></div>
+        </div>
+      </div>
+
+      <table class="inv-table">
+        <thead><tr>
+          <th>Description</th>
+          <th style="text-align:center">Qty</th>
+          <th style="text-align:center">Rate</th>
+          <th style="text-align:right">Amount</th>
+        </tr></thead>
+        <tbody id="prev-items"></tbody>
+      </table>
+
+      <div class="inv-totals">
+        <div class="inv-totals-box">
+          <div class="inv-total-row"><span>Subtotal</span><span id="prev-sub">$0.00</span></div>
+          <div class="inv-total-row" id="disc-row" style="display:none"><span>Discount</span><span id="prev-disc">-$0.00</span></div>
+          <div class="inv-total-row" id="tax-row" style="display:none"><span>Tax</span><span id="prev-tax">$0.00</span></div>
+          <div class="inv-total-row grand"><span>Total Due</span><span id="prev-total" style="color:var(--theme)">$0.00</span></div>
+        </div>
+      </div>
+
+      <div class="inv-terms" id="prev-terms" style="display:none">
+        <span class="inv-terms-label">Payment Terms</span>
+        <span class="inv-terms-val" id="prev-terms-val"></span>
+      </div>
+
+      <div class="inv-sig-section" id="prev-sig-section" style="display:none">
+        <div class="inv-sig-box">
+          <img class="inv-sig-img" id="prev-sig-img" src="" alt="Signature"/>
+          <div class="inv-sig-line">Authorized Signature</div>
+        </div>
+      </div>
+
+      <div class="inv-notes" id="prev-notes-section" style="display:none">
+        <div class="inv-notes-label">Notes</div>
+        <div class="inv-notes-text" id="prev-notes"></div>
+      </div>
+
+      <div class="inv-footer">
+        <div class="inv-footer-brand">InvoiceKit</div>
+        <div class="inv-footer-mono">Thank you for your business.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── THEMES ──
+const THEMES = [
+  {name:'Crimson', color:'#c8472a'}, {name:'Ocean',  color:'#2a5fc8'},
+  {name:'Forest',  color:'#2a7a4a'}, {name:'Violet', color:'#6a35c8'},
+  {name:'Slate',   color:'#3a4a6a'}, {name:'Gold',   color:'#b88a00'},
+  {name:'Ink',     color:'#0f0f0f'}, {name:'Rose',   color:'#c8356a'},
+];
+let theme = THEMES[0].color;
+
+function buildSwatches() {
+  const wrap = document.getElementById('swatches');
+  THEMES.forEach((t, i) => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (i === 0 ? ' active' : '');
+    s.style.background = t.color;
+    s.title = t.name;
+    s.onclick = () => {
+      theme = t.color;
+      document.querySelectorAll('.swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      applyTheme();
+      update();
+    };
+    wrap.appendChild(s);
+  });
+}
+
+function applyTheme() {
+  document.documentElement.style.setProperty('--theme', theme);
+  document.getElementById('inv-bar').style.background = theme;
+  document.getElementById('inv-title').style.color = theme;
+  document.getElementById('prev-total').style.color = theme;
+  document.getElementById('prev-amt').style.color = theme;
+}
+
+// ── LOGO ──
+let logoUrl = null;
+function handleLogo(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    logoUrl = ev.target.result;
+    document.getElementById('logo-img').src = logoUrl;
+    document.getElementById('logo-preview').style.display = 'flex';
+    update();
+  };
+  r.readAsDataURL(file);
+}
+function removeLogo() {
+  logoUrl = null;
+  document.getElementById('logo-preview').style.display = 'none';
+  document.getElementById('logo-input').value = '';
+  update();
+}
+
+// ── SIGNATURE ──
+const canvas = document.getElementById('sig-canvas');
+const ctx = canvas.getContext('2d');
+let drawing = false, sigUrl = null;
+ctx.strokeStyle = '#0f0f0f'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+function pos(e) {
+  const r = canvas.getBoundingClientRect();
+  const sx = canvas.width / r.width, sy = canvas.height / r.height;
+  const src = e.touches ? e.touches[0] : e;
+  return { x: (src.clientX - r.left) * sx, y: (src.clientY - r.top) * sy };
+}
+canvas.addEventListener('mousedown',  e => { drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); });
+canvas.addEventListener('mousemove',  e => { if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); });
+canvas.addEventListener('mouseup',    () => drawing=false);
+canvas.addEventListener('mouseleave', () => drawing=false);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }, {passive:false});
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); }, {passive:false});
+canvas.addEventListener('touchend',   () => drawing=false);
+
+function clearSig() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  sigUrl = null;
+  document.getElementById('prev-sig-section').style.display = 'none';
+}
+function applySig() {
+  sigUrl = canvas.toDataURL();
+  document.getElementById('prev-sig-img').src = sigUrl;
+  document.getElementById('prev-sig-section').style.display = 'flex';
+}
+
+// ── LINE ITEMS ──
+let lines = [{desc:'Web Design',qty:1,rate:500},{desc:'Development',qty:10,rate:75}];
+
+function renderLines() {
+  const c = document.getElementById('line-items'); c.innerHTML = '';
+  lines.forEach((l,i) => {
+    const d = document.createElement('div'); d.className='li-row';
+    d.innerHTML = `
+      <input placeholder="Description" value="${l.desc}" oninput="lines[${i}].desc=this.value;update()"/>
+      <input type="number" value="${l.qty}" min="0" oninput="lines[${i}].qty=+this.value;update()"/>
+      <input type="number" value="${l.rate}" min="0" step="0.01" oninput="lines[${i}].rate=+this.value;update()"/>
+      <button class="btn-rm" onclick="rmLine(${i})">×</button>`;
+    c.appendChild(d);
+  });
+}
+function addLine() { lines.push({desc:'',qty:1,rate:0}); renderLines(); update(); }
+function rmLine(i) { lines.splice(i,1); renderLines(); update(); }
+
+// ── PAYMENT TERMS ──
+function termsChange() {
+  const v = document.getElementById('paymentTerms').value;
+  document.getElementById('custom-terms-wrap').style.display = v==='custom' ? '' : 'none';
+  update();
+}
+
+// ── FORMAT ──
+function fmt(n) {
+  const s = document.getElementById('currency').value||'$';
+  return s + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+function fmtDate(v) {
+  if(!v) return '—';
+  const [y,m,d]=v.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]+' '+d+', '+y;
+}
+
+// ── UPDATE ──
+function update() {
+  const g = id => document.getElementById(id);
+
+  // Brand / logo
+  const bb = g('inv-brand-block');
+  if (logoUrl) {
+    bb.innerHTML = `<img class="inv-logo-img" src="${logoUrl}"/>`;
+  } else {
+    bb.innerHTML = `<div class="inv-brand">${g('fromName').value||'Your Business'}</div><div class="inv-brand-sub">${g('fromEmail').value||''}</div>`;
+  }
+
+  g('prev-num').textContent = g('invNumber').value||'INV-001';
+  g('prev-from-name').textContent = g('fromName').value||'Your Name';
+  g('prev-from-detail').textContent = [g('fromAddress').value,g('fromEmail').value].filter(Boolean).join('\n');
+  g('prev-to-name').textContent = g('toName').value||'Client Name';
+  g('prev-to-detail').textContent = [g('toAddress').value,g('toEmail').value].filter(Boolean).join('\n');
+  g('prev-date').textContent = fmtDate(g('invDate').value);
+  g('prev-due').textContent  = fmtDate(g('dueDate').value);
+
+  // Table
+  const tbody = g('prev-items'); tbody.innerHTML='';
+  let sub=0;
+  lines.forEach(l => {
+    const amt=(l.qty||0)*(l.rate||0); sub+=amt;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${l.desc||'<em style="color:#bbb">Item</em>'}</td><td style="text-align:center">${l.qty}</td><td style="text-align:center">${fmt(l.rate)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${fmt(amt)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Totals
+  const dp=parseFloat(g('discount').value)||0, tp=parseFloat(g('taxRate').value)||0;
+  const da=sub*dp/100, ta=(sub-da)*tp/100, total=sub-da+ta;
+  g('prev-sub').textContent=fmt(sub);
+  g('disc-row').style.display=dp>0?'':'none'; g('prev-disc').textContent='-'+fmt(da);
+  g('tax-row').style.display=tp>0?'':'none';  g('prev-tax').textContent=fmt(ta);
+  g('prev-total').textContent=fmt(total);
+  g('prev-amt').textContent=fmt(total);
+
+  // Terms
+  const tv=g('paymentTerms').value;
+  const termsVal = tv==='custom' ? g('customTerms').value : tv;
+  if(termsVal && termsVal!=='— None —') {
+    g('prev-terms').style.display='flex'; g('prev-terms-val').textContent=termsVal;
+  } else { g('prev-terms').style.display='none'; }
+
+  // Notes
+  const notes=g('notes').value;
+  g('prev-notes-section').style.display=notes?'':'none';
+  g('prev-notes').textContent=notes;
+}
+
+// ── PDF ──
+function downloadPDF() {
+  const el=document.getElementById('invoice-doc');
+  const num=document.getElementById('invNumber').value||'invoice';
+  html2pdf().set({
+    margin:0, filename:`${num}.pdf`,
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true},
+    jsPDF:{unit:'px',format:[680,960],orientation:'portrait'}
+  }).from(el).save();
+}
+
+// ── INIT ──
+buildSwatches();
+const today=new Date(), iso=d=>d.toISOString().split('T')[0];
+document.getElementById('invDate').value=iso(today);
+const due=new Date(today); due.setDate(due.getDate()+30);
+document.getElementById('dueDate').value=iso(due);
+renderLines(); update();
+</script>
+</body>
+</html>
